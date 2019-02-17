@@ -60,7 +60,7 @@ def compute_single_denseCRF(image, saliency_map, add_half_salmap=False):
 def perform_dense_CRF(im_list_dict, idx, saliency_ext, saliency_folder, base_folder, output_folder):
     elem = im_list_dict[idx]
     image = cv2.imread(elem['full_path'], 1)
-    saliency_im_name = elem['name'] + '_' + saliency_folder
+    saliency_im_name = elem['sal_name']
     saliency_im_name_full = os.path.join(base_folder, saliency_folder, saliency_im_name + saliency_ext)
     saliency_map = cv2.imread(saliency_im_name_full, 0)
     result = compute_single_denseCRF(image, saliency_map, add_half_salmap=True)
@@ -76,13 +76,14 @@ def main():
 
     # Initialize the folders and file parameters
     # Name of the parent folder of the folder containing the images and saliency
-    base_folder = 'C:\\Users\\dobeac\\Documents\\Gits\\Deep-GDM\\test-output\\DUT-OMRON'
+    current_dir = os.getcwd()
+    base_folder = os.path.join(current_dir, '..\\test-output\\DUT-OMRON')
 
     # name of the folder containing the original images
     image_folder = 'images'
 
     # name of the folder containing the saliency results
-    saliency_folder = 'DSGDM2'
+    saliency_folder = 'DSGDM6'
 
     # Name of the folder to create with the saliency results
     output_folder = saliency_folder + '_CRF'
@@ -96,17 +97,20 @@ def main():
 
     # Get the full files list
     im_list = glob.glob(os.path.join(base_folder, image_folder) + '/*' + im_ext)
+    saliency_list = glob.glob(os.path.join(base_folder, saliency_folder) + '/*' + saliency_ext)
     im_list_dict = []
     for idx, elem in enumerate(im_list):
         path, full_name = os.path.split(elem)
         name, _ = full_name.split('.')
-        im_list_dict.append({'full_path': elem, 'path': path, 'full_name': full_name, 'name': name})
+        _, sal_full_name = os.path.split(saliency_list[idx])
+        sal_name, _ = sal_full_name.split('.')
+        im_list_dict.append({'full_path': elem, 'path': path, 'full_name': full_name, 'name': name, 'sal_name': sal_name})
 
     # Loop all the images to compute the denseCRF and output a result
     num_cores = multiprocessing.cpu_count()
-    # Parallel(n_jobs=num_cores)(delayed(perform_dense_CRF)(im_list_dict, idx, saliency_ext, saliency_folder, base_folder, output_folder) for idx in range(0, len(im_list_dict)))
-    for idx in range(0, len(im_list_dict)):
-        perform_dense_CRF(im_list_dict, idx, saliency_ext, saliency_folder, base_folder, output_folder)
+    Parallel(n_jobs=num_cores)(delayed(perform_dense_CRF)(im_list_dict, idx, saliency_ext, saliency_folder, base_folder, output_folder) for idx in range(0, len(im_list_dict)))
+    #for idx in range(0, len(im_list_dict)):
+    #    perform_dense_CRF(im_list_dict, idx, saliency_ext, saliency_folder, base_folder, output_folder)
 
 
 if __name__ == '__main__':
